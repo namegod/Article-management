@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>编辑分类</title>
+    <link rel="stylesheet" href="/public/layui/css/layui.css">
+</head>
+
+<body class="layui-layout-body">
+    <!-- 引入 nprogress 加载进度条 -->
+    {{ include './common_tags/nprogress.html'}}
+
+    <div class="layui-layout layui-layout-admin">
+        <!-- 头部区域 -->
+        {{ include './common_tags/header.html'}}
+
+        <!-- 左侧导航区域 -->
+        {{ include './common_tags/side.html'}}
+
+        <div class="layui-body">
+            <!-- 内容主体区域 -->
+            <div style="padding: 15px;">
+                <h2>编辑分类</h2>
+                <form class="layui-form" action="">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">分类名称:</label>
+                        <div class="layui-input-inline">
+                            <input type="text" name="category" required lay-verify="required|category" autocomplete="off" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">排序:</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="rank" required lay-verify="required" autocomplete="off" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">添加时间:</label>
+                        <div class="layui-input-inline">
+                            <input type="text" id="dateTime" name="add_time" required lay-verify="required" autocomplete="off" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <div class="layui-input-block">
+                            <button class="layui-btn" lay-submit lay-filter="formDemo">立即提交</button>
+                            <button type="reset" class="layui-btn layui-btn-primary" id="reset">重置</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 底部区域 -->
+        {{ include './common_tags/footer.html'}}
+    </div>
+</body>
+<script src="public/layui/layui.js"></script>
+<script src="/public/js/moment.js"></script>
+<script src="/public/js/change_time.js"></script>
+<script>
+    var originalData = {};
+
+    let reg = /sort_id=(.*)&?/;
+    let sortId = reg.exec(location.href)[1];
+
+    $.ajax({
+        url: `/getSingleData?sort_id=${sortId}`
+    }).then(res => {
+
+        let {
+            category,
+            rank,
+            add_time,
+            errcode
+        } = res;
+        originalData = {...res
+        };
+
+        if (errcode == 0) {
+            resetData(category, rank, add_time);
+        }
+    });
+
+    $('#reset').on('click', function() {
+        let {
+            category,
+            rank,
+            add_time
+        } = originalData;
+        resetData(category, rank, add_time);
+    });
+
+
+    function resetData(name, sort, date) {
+        time = util.change_time(date);
+
+        $('[name=category]').val(name);
+        $('[name=rank]').val(sort);
+        $('[name=add_time]').val(time);
+    };
+
+
+    layui.use(['element', 'form', 'layer', 'laydate'], function() {
+        var element = layui.element;
+        var layer = layui.layer;
+        var laydate = layui.laydate;
+        var form = layui.form;
+
+
+        laydate.render({
+            elem: '#dateTime',
+            type: 'datetime' 
+        });
+        let categoryEle = $('[name=category]')[0];
+        var categoryVal = $('[name=category]').val();
+        form.verify({
+            category: function(categoryVal, categoryEle) { 
+                if (!/[\u4e00-\u9fa5]/.test(categoryVal)) {
+                    return '分类名必须是中文';
+                }
+            }
+        });
+
+   
+        form.on('submit(formDemo)', function(data) {
+            $(data.elem).addClass('layui-btn-disabled').text('修改中...');
+
+            data.field.sort_id = sortId; 
+            $.ajax({
+                type: 'post',
+                data: data.field,
+                url: '/editSingData'
+            }).then(res => {
+
+                $(data.elem).removeClass('layui-btn-disabled').text('立即提交');
+                let {
+                    errcode,
+                    message
+                } = res;
+                if (errcode == 0) {
+                    layer.msg(message);
+                    location.href = '/sort';
+                } else {
+                    layer.msg(message);
+                }
+            });
+            return false;
+        });
+    });
+</script>
+</body>
+
+</html>

@@ -1,0 +1,22 @@
+
+<link rel="stylesheet" href="node_modules/nprogress/nprogress.css">
+<script src="node_modules/nprogress/nprogress.js"></script>
+<script src="public/js/jquery-3.5.1.min.js"></script>
+<script>
+    NProgress.start(); 
+    NProgress.set(0.2);
+    window.onload = function() {
+        NProgress.done(); 
+    };
+
+    // 全局设置
+    $.ajaxSetup({
+        beforeSend: function() {
+            NProgress.start(); 
+        },
+        complete: function() {
+            NProgress.done(); 
+
+        }
+    });
+</script>

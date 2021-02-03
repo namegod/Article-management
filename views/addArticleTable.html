@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>layout 后台大布局 - Layui</title>
+    <link rel="stylesheet" href="/public/layui/css/layui.css">
+</head>
+
+<body class="layui-layout-body">
+    <!-- 引入 nprogress 加载进度条 -->
+    {{ include './common_tags/nprogress.html'}}
+
+    <div class="layui-layout layui-layout-admin">
+        <!-- 头部区域 -->
+        {{ include './common_tags/header.html'}}
+
+        <!-- 左侧导航区域 -->
+        {{ include './common_tags/side.html'}}
+
+        <div class="layui-body">
+            <!-- 内容主体区域 -->
+            <div style="padding: 15px;">
+                <h2>添加文章</h2>
+                <form class="layui-form">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">标题:</label>
+                        <div class="layui-input-inline">
+                            <input type="text" name="title" required lay-verify="required" placeholder="请输入标题" autocomplete="off" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">作者:</label>
+                        <div class="layui-input-inline">
+                            <input type="text" name="author" required lay-verify="required" autocomplete="off" class="layui-input" placeholder="作家名字">
+                        </div>
+                    </div>
+                    <div class="layui-form-item layui-form-text">
+                        <label class="layui-form-label">内容:</label>
+                        <div class="layui-input-block">
+                            <div id="content"></div>
+                        </div>
+                    </div>
+
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">分类:</label>
+                        <div class="layui-input-inline" style="z-index:99999">
+                            <select name="sort_id" id="sort_id" lay-verify="required">
+                                <option value=""></option>
+                                <option value="1">军事</option>
+                                <option value="2">体育</option>
+                                <option value="3">娱乐</option>
+                              </select>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="cover" id="hidden_cover">
+
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">封面:</label>
+                        <button type="button" class="layui-btn" id="cover">
+                                <i class="layui-icon">&#xe67c;</i>上传图片
+                        </button>
+                    </div>
+
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">预览:</label>
+                        <div class="layui-input-block">
+                            <img src="" alt="" id='preview_cover'>
+                        </div>
+                    </div>
+
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">发布状态:</label>
+                        <div class="layui-input-block" id="artStatus">
+                            <input type="radio" name="status" value="未发布" title="未发布" checked>
+                            <input type="radio" name="status" value="已发布" title="已发布">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">添加时间:</label>
+                        <div class="layui-input-inline">
+                            <input type="text" id="dateTime" name="release_time" required lay-verify="required" placeholder="请添加时间" autocomplete="off" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <div class="layui-input-block">
+                            <button class="layui-btn" lay-submit lay-filter="formDemo">立即提交</button>
+                            <button type="reset" class="layui-btn layui-btn-primary" id="reset">重置</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 底部区域 -->
+        {{ include './common_tags/footer.html'}}
+    </div>
+</body>
+<script src="https://cdn.jsdelivr.net/npm/wangeditor@latest/dist/wangEditor.min.js"></script>
+<script>
+    const E = window.wangEditor
+    const editor = new E('#content');
+    editor.config.uploadImgShowBase64 = true; 
+    editor.create();
+
+
+    layui.use(['element', 'form', 'layer', 'laydate', 'upload'], function() {
+        var element = layui.element;
+        var layer = layui.layer;
+        var laydate = layui.laydate;
+        var form = layui.form;
+        var upload = layui.upload;
+
+    
+        var uploadInst = upload.render({
+            elem: '#cover', 
+            url: '/coverApi', 
+            done: function(res) {
+
+                let {
+                    path,
+                    errcode
+                } = res;
+                if (errcode == 0) {
+                    $('#preview_cover').attr('src', path).css('width', '100');
+                    $("#hidden_cover").val(path);
+                }
+            },
+            error: function() {
+
+            }
+        });
+
+        laydate.render({
+            elem: '#dateTime',
+            type: 'datetime' 
+        });
+
+        function getArticle_sort() {
+            $.get('/getArticleSort', res => {
+     
+                let optionStr = `<option value=""></option>`;
+                res.forEach(item => {
+                    optionStr += `<option value="${item.sort_id}">${item.category}</option>`;
+                });
+                $('#sort_id').html(optionStr);
+                form.render();
+            }, 'json')
+        };
+        getArticle_sort();
+
+
+
+        form.on('submit(formDemo)', data => {
+
+            let formData = data.field;
+            formData.content = editor.txt.html();
+            $.ajax({
+                type: 'post',
+                data: formData,
+                url: '/insertArcontent'
+            }).then(res => {
+                $(data.elem).removeClass('layui-btn-disabled').text('立即提交');
+                let {
+                    errcode,
+                    message
+                } = res;
+                if (errcode == 0) {
+                    layer.msg(message);
+                    location.href = '/article';
+                } else {
+                    layer.msg(message);
+                }
+            });
+            return false;
+        });
+    });
+
+</script>
+</body>
+
+</html>

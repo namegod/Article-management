@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>文章分类</title>
+    <link rel="stylesheet" href="/public/layui/css/layui.css">
+</head>
+
+<body class="layui-layout-body">
+    <!-- 引入 nprogress 加载进度条 -->
+    {{ include './common_tags/nprogress.html'}}
+
+    <div class="layui-layout layui-layout-admin">
+
+        <!-- 头部区域 -->
+        {{ include './common_tags/header.html'}}
+
+        <!-- 左侧导航区域 -->
+        {{ include './common_tags/side.html'}}
+
+        <!-- 主体区域 -->
+        <div class="layui-body">
+            <div style="padding: 15px;">
+                <h2>栏目管理</h2>
+                <a href="/addSortTable" class="layui-btn layui-btn-sm layui-btn-normal" style="margin-top:10px;" id="addSort">
+                    <i class="layui-icon">&#xe654;</i>添加分类
+                </a>
+                <table class="layui-table" lay-size="sm">
+                    <colgroup>
+                        <col width="100">
+                        <col width="">
+                        <col width="100">
+                        <col width="">
+                        <col width="114">
+                        <col>
+                    </colgroup>
+                    <thead>
+                        <thead>
+                            <tr>
+                                <th>序号</th>
+                                <th>分类</th>
+                                <th>排序</th>
+                                <th>添加时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 底部区域 -->
+        {{ include './common_tags/footer.html'}}
+
+    </div>
+</body>
+<script src="/public/layui/layui.js"></script>
+<script src="/public/js/moment.js"></script>
+<script src="/public/js/change_time.js"></script>
+
+<script>
+
+    function appendTable(data) {
+        let tableStr = '';
+        data.forEach(function(item, index) {
+            let {
+                sort_id,
+                category,
+                rank,
+                add_time
+            } = item;
+            add_time = util.change_time(add_time);
+            tableStr += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${category}</td>
+                        <td>${rank + 1}</td>
+                        <td>${add_time}</td>
+                        <td>
+                            <button title="编辑" type="button" sort_id="${sort_id}" id="update" class="layui-btn layui-btn-sm layui-btn-warm">
+                                <i class="layui-icon">&#xe642;</i>
+                            </button>
+                            <button title="删除" sort_id="${sort_id}" type="button" class="layui-btn layui-btn-sm   layui-btn-danger" id="delete">
+                                <i class="layui-icon">&#xe640;</i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            $('#tbody').html(tableStr);
+        });
+    };
+
+    // 获取表格数据
+    function getArticleSort() {
+        $.ajax({
+            url: '/getSort'
+        }).then(res => {
+            appendTable(res);
+        })
+    };
+    getArticleSort();
+
+    layui.use('layer');
+
+    // 删除数据
+    $('#tbody').on('click', '#delete', function() {
+        let _this = $(this);
+        let sort_id = _this.attr('sort_id');
+        layer.confirm('确认删除吗', {
+            btn: ['是的', '取消'] 
+        }, function() {
+            $.ajax({
+                type: 'post',
+                url: "/deleteSort",
+                data: {
+                    sort_id
+                },
+                dataType: "json"
+            }).then(res => {
+
+                let {
+                    errcode,
+                    message
+                } = res;
+                if (errcode == 0) {
+
+                    layer.closeAll();
+
+                    _this.parents('tr').remove();
+                    $.each($("#tbody tr").find('td:eq(0)'), function(index, domEle) {
+                        $(domEle).html(index + 1);
+                    });
+                    layer.msg(message);
+                };
+            }).catch((err) => {
+                console.log(err);
+
+                layer.closeAll();
+            });
+        });
+    });
+    $('#tbody').on('click', '#update', function() {
+        let sort_id = $(this).attr('sort_id');
+        location.href = `/updateSortTable?sort_id=${sort_id}`;
+    })
+</script>
+</body>
+
+</html>

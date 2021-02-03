@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>layout 后台大布局 - Layui</title>
+    <link rel="stylesheet" href="/public/layui/css/layui.css">
+</head>
+
+<body class="layui-layout-body">
+    <!-- 引入 nprogress 加载进度条 -->
+    {{ include './common_tags/nprogress.html'}}
+
+    <div class="layui-layout layui-layout-admin">
+
+        <!-- 头部区域 -->
+        {{ include './common_tags/header.html'}}
+
+        <!-- 左侧导航区域 -->
+        {{ include './common_tags/side.html'}}
+
+        <!-- 主体区域 -->
+        <div class="layui-body">
+            <div style="padding: 15px;">
+                <div id="picture" style="width: 600px;height:400px;"></div>
+                <div id="monthArt" style="width: 600px;height:400px;"></div>
+            </div>
+        </div>
+
+        <!-- 底部区域 -->
+        {{ include './common_tags/footer.html'}}
+
+    </div>
+</body>
+
+<script src="https://cdn.staticfile.org/echarts/4.3.0/echarts.min.js"></script>
+<script>
+    //JavaScript代码区域
+    layui.use('element', function() {
+        var element = layui.element;
+    });
+
+    $.get('/getStatistic', (res) => {
+
+        let artSort = []; 
+        let artTotal = []; 
+        res.map(item => {
+            artSort.push(item.category);
+            artTotal.push(item.total);
+        });
+        let data = {
+            ele: $('#picture')[0], 
+            names: artSort, 
+            total: artTotal, 
+            text: '文章分类一览表', 
+            type: 'line' 
+        }
+        initEchart(data); 
+    })
+
+    $.get('/getMonthlyArt', (res) => {
+
+        let months = []; 
+        let totals = []; 
+        res.map(item => {
+            months.push(item.month + '月');
+            totals.push(item.total)
+        })
+        let dom = document.getElementById("art")
+        let text = '每月文章统计一览表';
+        let data = {
+            ele: $('#monthArt')[0], 
+            nams: months, 
+            total: totals, 
+            text: '每月发布文章一览表', 
+            type: 'line' 
+        }
+        initEchart(data); 
+    });
+
+    function initEchart({
+        ele,
+        names,
+        total,
+        text,
+        type
+    }) {
+        var myChart = echarts.init(ele); 
+
+ 
+        var option = {
+            title: {
+                text: text, 
+                textStyle: {
+                    color: '#cccccc'
+                }
+            },
+            color: "skyblue",
+            tooltip: {
+                show: true,
+                axisPointer: {
+                    type: 'cross'
+                }
+            },
+            legend: {
+                data: ['销量']
+            },
+            xAxis: {
+                data: names
+            },
+            yAxis: {},
+            series: [{
+                name: '文章篇数',
+                type: type, 
+                data: total,
+                label: {
+                    show: true,
+                    fontSize: 20,
+                    showBackground: true,
+                    backgroundStyle: {
+                        color: 'rgba(180, 180, 180, 0.2)'
+                    }
+                }
+            }]
+        };
+        myChart.setOption(option);
+    }
+</script>
+</body>
+
+</html>

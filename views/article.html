@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>文章管理后台</title>
+    <link rel="stylesheet" href="/public/layui/css/layui.css">
+    <!-- 引入灯箱css文件-->
+    <link rel="stylesheet" href="/public/css/lightbox.css">
+</head>
+
+<body class="layui-layout-body">
+    <!-- 引入 nprogress 加载进度条 -->
+    {{ include './common_tags/nprogress.html'}}
+
+    <div class="layui-layout layui-layout-admin">
+        <!-- 头部区域 -->
+        {{ include './common_tags/header.html'}}
+
+        <!-- 左侧导航区域 -->
+        {{ include './common_tags/side.html'}}
+
+        <!-- 内容主体区域 -->
+        <div class="layui-body">
+            <div style="padding: 15px;">
+                <h2>文章管理</h2>
+                <a href="/addArticleTable" class="layui-btn layui-btn-sm layui-btn-normal" style="margin-top:10px;" id="addSort">
+                    <i class="layui-icon">&#xe654;</i>添加文章
+                </a>
+                <table class="layui-hide" id="test" lay-filter="test"></table>
+            </div>
+        </div>
+
+        <!-- 底部区域 -->
+        {{ include './common_tags/footer.html'}}
+    </div>
+</body>
+<script src="/public/layui/layui.js"></script>
+<script src="/public/js/moment.js"></script>
+<script src="/public/js/change_time.js"></script>
+<script src="/public/js/lightbox-plus-jquery.min.js"></script>
+<script>
+
+    layui.use(['table', 'layer', 'element'], function() {
+        var table = layui.table;
+
+        let tableIns = table.render({
+            toolbar: '#toolbarDemo', 
+            defaultToolbar: ['filter', 'exports', 'print', { 
+                title: '提示',
+                layEvent: 'LAYTABLE_TIPS',
+                icon: 'layui-icon-tips'
+            }],
+            elem: '#test',
+            url: '/getArticle',
+            limit: 10,
+            title: '文章数据表',
+            cols: [
+                [{
+                    type: 'checkbox',
+                    fixed: 'left'
+                }, {
+                    field: 'article_id',
+                    title: 'ID',
+                    width: 100,
+                    fixed: 'left',
+                    unresize: true,
+                    sort: true,
+                    align: 'center', 
+                    hide: true 
+                }, {
+                    field: 'author',
+                    title: '作者',
+                }, {
+                    field: 'title',
+                    title: '文章标题',
+                    edit: 'text'
+                }, {
+                    field: 'content',
+                    title: '内容',
+                    edit: 'text',
+                    hide: true
+                }, {
+                    field: 'cover',
+                    title: '封面',
+                    width: 120,
+                    templet({
+                        cover
+                    }) {
+                        let imgStr = `
+                        <a class="example-image-link" href="${cover}" data-lightbox="example-1" data-title="封面">
+                            <img class="example-image" style="width:80px;" src="${cover}" alt="暂无图片" />
+                        </a>`;
+                        return imgStr;
+                    }
+                }, {
+                    field: 'category',
+                    title: '分类',
+                    width: 120,
+                    edit: 'text',
+                    unresize: true,
+                    sort: true,
+                    align: 'center'
+                }, {
+                    field: 'status',
+                    title: '状态',
+                    width: 120,
+                    align: 'center',
+                    templet(item) {
+
+                        let statusObj = {
+                            '0': '<span class="layui-badge layui-bg-orange">未发布</span>',
+                            '1': '<span class="layui-badge layui-bg-blue">已发布</span>',
+                            '2': '<span class="layui-badge layui-bg-green">审核中</span>',
+                        };
+                        return statusObj[item.status];
+                    }
+                }, {
+                    field: 'release_time',
+                    title: '发布时间',
+                    width: 220,
+                    sort: true,
+                    templet(time) {
+                        if (time.release_time == null) {
+                            release_time = ''
+                        } else {
+                            release_time = util.change_time(time.release_time)
+                        }
+                        return release_time;
+                    }
+                }, {
+                    fixed: 'right',
+                    title: '操作',
+
+                    width: 240,
+                    templet(item) {
+                        console.log(item);
+                        let itemStr = `
+                            <a class="layui-btn layui-btn-xs" lay-event="show">查看内容</a>
+                            <a class="layui-btn layui-btn-xs layui-bg-cyan" lay-event="edit">编辑</a>
+                            <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>`;
+
+                        if (item.status == 0) {
+                            itemStr += `<a class="layui-btn layui-btn-xs" style="background-color:purple;" lay-event="verify">待审核</a>`;
+                        }
+                        return itemStr;
+                    }
+                }]
+            ],
+            page: true,
+            text: {
+                none: '这里空空如也'
+            }
+        });
+
+
+        table.on('tool(test)', function(obj) {
+            console.log(obj); 
+            let article_id = obj.data.article_id; 
+            let content = obj.data.content; 
+            let oldCover = obj.data.cover; 
+            switch (obj.event) {
+                case 'del':
+                    deleteArt(article_id, oldCover);
+                    break;
+                case 'edit':
+                    updateArt(article_id);
+                    break;
+                case 'show':
+                    selectArt(content);
+                    break;
+            };
+
+            function deleteArt(id, path) {
+
+                layer.confirm('确认删除吗', {
+                    btn: ['是的', '取消'] 
+                }, function() {
+                    $.ajax({
+                        type: 'post',
+                        url: "/deleteArticle",
+                        data: {
+                            article_id: id,
+                            oldCover: path
+                        },
+                        dataType: "json"
+                    }).then(res => {
+
+                        let {
+                            errcode,
+                            message
+                        } = res;
+                        if (errcode == 0) {
+
+                            layer.closeAll();
+                            tableIns.reload(); 
+
+                        };
+                    })
+                });
+            };
+
+
+            function updateArt(id) {
+                location.href = `/updateArticleTable?article_id=${id}`;
+            };
+        });
+
+        function selectArt(data) {
+
+            layer.open({
+                type: 1,
+                skin: 'layui-layer-rim', //加上边框
+                area: ['1180px', '666px'], //宽高
+                content: "<div style='padding:15px'>" + data + "</div>"
+            });
+        }
+    });
+</script>
+</body>
+
+</html>

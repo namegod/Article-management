@@ -1,0 +1,24 @@
+{
+    "name": "layui-admin",
+    "version": "1.0.0",
+    "description": "",
+    "main": "create server.js",
+    "dependencies": {
+        "art-template": "^4.13.2",
+        "express": "^4.17.1",
+        "express-art-template": "^1.0.1",
+        "express-session": "^1.17.1",
+        "multer": "^1.4.2",
+        "mysql": "^2.18.1",
+        "nprogress": "^0.2.0",
+        "wangeditor": "^4.6.4"
+    },
+    "devDependencies": {},
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "serve": "nodemon ./index.js"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC"
+}
